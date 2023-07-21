@@ -19,7 +19,7 @@ def heat_kernel(kernel_size, delta):
 
     for i in range(kernel_size):
         for j in range(kernel_size):
-            kernel[i, j] = np.exp(-(i**2 + j**2)/4)/(4*np.pi*delta**2)
+            kernel[i, j] = np.exp(-(i**2 + j**2)/4*delta)/(4*np.pi*delta**2)
 
     return kernel
 

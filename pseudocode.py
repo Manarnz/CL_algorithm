@@ -12,6 +12,17 @@ def imshow(img):
     plt.axis('off')
     plt.show()
 
+# Resizing image array using interpolation
+def discretize(matrix, n):
+  IMG_HEIGHT = n   #Matrix dimensions in terms of n, number of discretized spaces on image
+  IMG_WIDTH = n
+  resizedImgArray = cv2.resize(
+    imgArray, (IMG_HEIGHT, IMG_WIDTH), interpolation=cv2.INTER_AREA
+  )
+def findDelta(n):
+  size=1
+  return size/n #Luca said we should find delta in terms of a given n, and for the time being this is the formula. the size is the original size of the image.
+
 def heat_kernel(kernel_size, delta):
     """Create a kernel using heat equation with input size and deviation"""
     # Create kernel maxtrix with input size
@@ -19,7 +30,7 @@ def heat_kernel(kernel_size, delta):
 
     for i in range(kernel_size):
         for j in range(kernel_size):
-            kernel[i, j] = np.exp(-(i**2 + j**2)/4)/(4*np.pi*delta**2)
+            kernel[i, j] = np.exp(-(i**2 + j**2)/4*delta)/(4*np.pi*delta**2)
 
     return kernel
 

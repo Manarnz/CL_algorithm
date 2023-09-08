@@ -1,0 +1,376 @@
+
+\documentclass[12pt]{article}
+\usepackage{fullpage}  %makes the text a little wider
+\usepackage{xcolor}
+\usepackage[export]{adjustbox}
+
+
+% You may like one of these fonts better than the default 
+% (which is called computer modern). Some might be slower to compile.
+%\usepackage{times}
+\usepackage{palatino}
+%\usepackage{concrete}
+%\usepackage{charter}
+
+% The next packages change the appearance of math fonts.
+%\usepackage{euler,eucal}
+
+% You should ALWAYS load the following packages, unless you're creating a non-mathematical document.
+\usepackage{amsmath,amsthm,amssymb,latexsym,mathrsfs, amsfonts}
+\usepackage{minted}
+\usepackage{biblatex}
+\addbibresource{bibliography.bib}
+% You can create "theorem-like" environments with whatever sort of 
+% name you want. The optional arguments here just affect how these 
+% environments are numbered within the document. The settings below 
+% cause all theorem-like environments to be numbered consecutively. You can change that...
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{exercise}[theorem]{Exercise}
+\theoremstyle{remark}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{notation}[theorem]{Notation}
+% You can also create your own theoremstyles; see the source files 
+% for the course documents for examples.
+
+% User-defined commands are invaluable; these are just of few of mine.
+\newcommand{\R}{\mathbb{R}}                % real numbers
+\newcommand{\C}{\mathbb{C}}                % complex numbers
+\newcommand{\Z}{\mathbb{Z}}                % integers
+\newcommand{\Q}{\mathbb{Q}}                % rational numbers
+\newcommand{\mx}[1]{\mathbf{#1}}           % name of matrix (or vector)
+\newcommand{\inv}{^{-1}}                   % inverse
+\newcommand{\norm}[1]{\left\| #1 \right\|} % norm
+\newcommand{\id}{\mathrm{id}}              % identity function
+\newcommand{\conj}[1]{\overline{#1}}       % complex conjugate
+\newcommand{\clos}[1]{\overline{#1}}       % closure (of a set)
+\newcommand{\bdy}{\partial}                % boundary (of a set)
+\newcommand{\til}{\widetilde}              % the regular \tilde is 
+                                           % too small for some uses
+% You should use \renewcommand only sparingly; these are personal 
+% preferences of mine for certain notation.
+\renewcommand{\emptyset}{\varnothing}
+\renewcommand{\Re}{\mathrm{Re}}
+\renewcommand{\Im}{\mathrm{Im}}
+
+% Everything up to this point has been "prologue" or "header". Now we begin the heart of the document, the input that the compiler will turn into typeset text, figures, and symbols.
+
+\begin{document}
+
+\title{Coding the Bence Merriman Osher Algorithm}
+\author{Sylvia Tan, Sophia Manodori, Manar Alnazar}
+\date{Summer 2023} % can replace \today with a specific date, if desired.
+
+\maketitle
+\tableofcontents
+\section{Introduction}
+In this project, we studied the partial differential equations that model diffusion algorithms, in particular heat diffusion. We studied the Bence Merriman Osher Algorithm, and used machine learning algorithms written in python to the BMO diffusion algorithm on a given image, as well as recover BMO algorithm parameters given images of a diffusion over time. In this paper, we will first cover the underlying mathematic theory behind curve shortening algorithms, heat diffusion algorithms, and the heat kernel. We will then discuss our code and how we implemented mathematics and computer science to model curve shortening over time. 
+ \section{Geometric Flow}
+ \subsection{Curve Shortening}
+ \definition Curvature: The curvature of a point on a curve is $$K=\frac{1}{r}$$ where $r$ is the radius of the largest ball that can touch the point without intersecting other areas of the curve (Fig. 1)\\
+ \begin{figure}[ht]
+\caption{Curvature of point P}
+\centering
+\includegraphics[width=7cm]{curvature.png}
+
+\end{figure}
+
+
+Higher curvature will result in a higher velocity of movement. Eventually, the curve will reach convexity in a finite amount of time. 
+\definition Curve Shortening Algorithm: a process on a smooth closed curve that moves points on the curve in a perpendicular motion such that in a finite amount of time, the curve becomes a circle and then disappears (figure 2).
+ \begin{figure}[ht]
+\centering
+\caption{}
+\includegraphics[width=7cm]{curve_shortening.png}
+
+\end{figure}
+The velocity of a shortening curve can be described as the product $$-K\vec{n} = \frac{d}{dt} x(t)$$
+where $\vec{n}$ is the unit normal vector. 
+\subsection{Introduction to the Bence Meriman Osher Algorithm}
+
+The Bence Meriman Osher Algorithm is a numerical algorithm that models curve evolution with less computation, using heat diffusion. It begins with a surface on the $xy$ plane and some fixed parameters, particularly a diffusion algorithm and a threshold $\alpha$. Consider the function $f(x)$ where $f(x) = 1$ over the shape, and $0$ everywhere else. We run a diffusion over our 3D shape for a chosen time $\Delta t$. 
+
+We then project a new shape on the $xy$ plane that is the intersection of our diffused function and the plane $z=\alpha$. We iterate the process a chosen amount of times. 
+
+Using this algorithm allows for two primary uses: 
+\subparagraph*{Direct Problem:} We begin with a given shape, then find it's evolution given some fixed parameters (e.g. heat diffusion, and threshold) 
+\subparagraph*{Inverse Problem:} We use the known evolution of the shape to recover the physical laws/parameters used. 
+
+
+\section{The Heat Equation}
+\subsection*{Introduction and Definitions}
+To model heat diffusion, we will be working with functions that use time and space. The function $u(x, y, t)$ is function that tracks the value of a place in space over time $t$. Graphically, imagine we are watching a 3d function on an x-y-z plane (where the z value is the heat at a given $(x, y)$ location fluctuate over a time frame. 
+\definition For a function $u(x, y)$, a laplacian of a function $u(x, y)$  is the sum expressed as
+$$\Delta u(x, y) = D_xD_xu(x, y) + D_yD_yu(x, y)$$
+This definition can be expanded for functions of any dimension. More generally, it is the sum of the second derivatives for each spacial variable of a function. If $\Delta u = 0$ at any point, we say that $u$ is a harmonic function. 
+\example Consider the function $u(x, y) = \frac{x^2+y^2}{4}$. We wish to compute $\Delta u(x, y).$ Notice that $D_x \big(\frac{x^2+y^2}{4}\big) = \frac{x}{2}$ and $D_xD_x\big(\frac{x^2+y^2}{4}\big)=\frac{1}{2}$. Similarly, $D_y \big(\frac{x^2+y^2}{4}\big) = \frac{y}{2}$ and $D_yD_y\big(\frac{x^2+y^2}{4}\big) =\frac{1}{2}$. This leaves us with $$\Delta u(x, y) = \frac{1}{2} + \frac{1}{2} = 1$$
+\definition For a function $u(x, y, t)$,  $u$ solves the heat equation if 
+$$D_t u(x, y, t) = \Delta u(x, y, t)$$
+Equivalently,
+$$D_t\; u(x, y, t) -\Delta u(x, y, t) = 0$$
+\example Consider the function $u(x, y, t) = \frac{x^2+y^2}{4} + t$. We will show mathematically that $u$ satisfies the heat equation.
+Based on our previous calculations, we see that $\Delta u = 1$ since $D_tD_t \big(\frac{x^2+y^2}{4} + t\big) = 0$ and $D_t \big(\frac{x^2+y^2}{4} + t\big) =1$, so $$D_t \Big(\frac{x^2+y^2}{4} + t\Big) = \Delta \Big(\frac{x^2+y^2}{4} + t \Big)$$
+So, $u$ satisfies the heat equation. 
+
+However, it is not immediately clear how $u(x, y, t) = \frac{x^2+y^2}{4} + t$ is a function that models heat diffusion. Let's look at the graph of $u$ at $t=0$. 
+\begin{figure}[ht]
+\caption{$u(x, y, 0) = \frac{x^2+y^2}{4}$}
+\centering
+\includegraphics[width=9cm]{parabaloid.png}
+
+\end{figure}
+As you can see, the graph of $u$ forms a parabaloid (fig. 1). We can interpret this parabaloid as a surface modeled on the  $x y$ plane, with $z$ being the temperature $z=u(x, y)$ at any given point on the surface. 
+At $(0, 0)$ the surface is very cold, and as $|x|$ and $|y|$ increase, so does the temperature, exponentially and infinitely. 
+
+When we consider our graph over discrete times $t_0, t_1, t_2...$ we will see more parabaloids appear with their vertices starting at $t_i$,  creating a nested series of parabaloids. If we took the cross section of the parabolas of $u$ at $t=0, 2, 4$, we would get the graph in figure 3.
+\begin{figure}[ht]
+\caption{$u(x, 0, [0, 2, 4]) = \frac{x^2+y^2}{4}$}
+\centering
+\includegraphics[width=10cm]{parabolas.png}
+
+\end{figure}
+This graph can be interpreted as modeling the entire surface of the $xy$ plane getting hotter over time. Notice that the original heat distribution at $t=0$ is infinite, and so the surface will forever increase in heat as it is drawing on an infinite source. 
+
+\section{The Heat Kernel}
+Consider we are given $g(x, y)$ such that $$\begin{cases}
+    \Delta u(x, y, t) = D_t u(x, y, t)\\
+    u(x, y, 0) = g(x, y) 
+\end{cases}$$
+We can find solutions of the heat equation $u(x, y, t)$ by using $g(x, y)$ and the \textbf{Heat kernel}.
+\definition The Heat kernel in 3 dimensions is the function $$K(x, y, t) = \frac{1}{4\pi t} e^{-\frac{x^2 + y^2}{4}}$$
+The Heat kernel is a solution to the heat equation that models heat diffusion over time $t \in (0, T]$ . Below is the graph at $t=1$ (fig. 3). 
+\begin{figure}[ht]
+\caption{Graph of $K(x, y, 1)$}
+\centering
+\includegraphics[width=8cm]{Heatkernel3d.png}
+\end{figure}
+When we graph the heat kernel over time for several example values of $t = 0.25, 1$ and $ 2$ , we end up with a series of flattening curves that get infinitely steep as $t$ approaches 0, or the initial starting point for the heat diffusion (fig. 4). As time goes on, the surface flattens. 
+\begin{figure}[ht]
+\centering
+\includegraphics[width=10cm]{Heatkernel2d.png}
+\caption{Cross section of the Heat kernel $K(x, 0, [0.25, 1, 2])$}
+\end{figure}
+
+\color{black}
+ \subsection{Derivation of the Heat Kernel}
+ We want to find a solution to the heat equation in one dimension: $$D_t V(x, t) - D_xD_xV(x, t) = 0$$
+ Notice that because we have a second derivative in space and a single derivative in time, this implies that given a solution $u(x, t)$, $u(\lambda x, \lambda^2 t)$ is also a solution. So, we 
+ use the scaling ratio $\frac{x^2}{t}$ or $\frac{x}{\sqrt{t}}$. 
+ 
+ Assume the heat equation has a solution of the form $$\frac{1}{t^{\alpha}}a\Big(\frac{x}{\sqrt{t}}\Big).$$ We wish to determine $a$ and $\alpha$. 
+ We plug our expression into the heat equation and get 
+ \begin{align*}
+     D_t \frac{1}{t^{\alpha}}a\Big(\frac{x}{\sqrt{t}}\Big) - D_xD_x \frac{1}{t^{\alpha}}a\Big(\frac{x}{\sqrt{t}}\Big) &= -\alpha t^{-(\alpha+1)}a\Big(\frac{x}{\sqrt{t}}\Big)-\frac{t}{2}^{-\alpha}a'\Big(\frac{x}{\sqrt{t}}\Big) \frac{x}{t^{\frac{3}{2}}}-t^{-\alpha} a''\Big(\frac{x}{\sqrt{t}}\Big)\frac{1}{t}\\
+     &=-\alpha a \Big(\frac{x}{\sqrt{t}}\Big) -\frac{a'}{2} \Big(\frac{x}{\sqrt{t}}\Big)-a'' \Big(\frac{x}{\sqrt{t}}\Big)\\
+     &=0
+ \end{align*}
+We let $\alpha=\frac{1}{2}$ and for simplicity, elt $r = \frac{x}{\sqrt{t}}$. Now we have \begin{align*}
+    \frac{1}{2}\frac{d}{dt}\big(a(r)r+\frac{d^2}{dt^2}a(r) &=0\\
+    \frac{d}{dt}\Big[\frac{1}{2}a(r)r+\frac{d}{dt}a(r)\Big] &=0\\
+    \frac{1}{2}a(r)r+\frac{d}{dt}a(r)&=\lambda\\
+    &=0
+\end{align*}
+ where $\lambda$ is a constant, because constant functions have derivatives of 0. In fact, because we want $\lim_{a\rightarrow \inf} =0$, we know $\lambda = 0$.
+ 
+ Now, we solve for $a$. We get \begin{align*}
+     a'(r) &= -\frac{1}{2}a(r)r\\
+     \frac{a'(r)}{a(r)} &= -\frac{r}{2}\\
+     \int \frac{a'(r)}{a(r)}dr &= \int -\frac{r}{2} dr\\
+     \ln{a(r)} &=-\frac{r^2}{4}+C\\
+     a(r) &= e^{\frac{-r^2}{4}}e^C\\
+\end{align*}
+We let $e^C=A$
+\begin{align*}
+     a\Big(\frac{x}{\sqrt{t}}\Big)&= Ae^{\frac{x^2}{4t}}
+ \end{align*}
+Now in our final equation, we let $A=\frac{1}{(4\pi t)^{\frac{n}{2}}}$ where $n$ is the number of dimensions of the Heat Kernel. 
+So, we are left with the solution $$K(x,t) = \frac{1}{(4\pi t)^{\frac{1}{2}}} e^{-\frac{x^2}{4t}}$$
+\cite{pde}
+ \subsubsection{Heat Kernel Properties}
+ \begin{theorem}
+     $$\int_\R K(x, t) dx = 1$$
+ \end{theorem}
+ \begin{theorem}
+     $$\lim_{t\rightarrow 0} K * g(x, t) = g(x)$$
+ \end{theorem}
+When we wish to find a solution to the heat equation  $u(x, y, t)$, we can use the heat kernel and the initial data $g(x, y)$ to create the convolution
+$$u(x, y, t) = g * K$$ such that 
+\begin{align*}
+    g * K &= \int\int g(a, b) K(x-a, y-b, t) \delta a \; \delta b\\
+    &=\int\int g(a-x, b-y) K(a, b, t) \delta a \; \delta b
+\end{align*}
+Let us return to our original query: finding a solution of the heat equation $u(x, y, t)$ using initial data $g(x, y)$. We begin by discretizing the function $u$. Fixing three numbers $\Delta x, \Delta y, \Delta t >0$, we create a lattice in $\mathbb{R}^2$ composed of points $p_{ijk}=(x_i, y_j, t_k)$ where $x_i=i \Delta x$, $y_j=j \Delta y$ and $t_k=k \Delta t$. 
+
+Because of the homogeneity of the heat equation, we fix $$\Delta t= \Delta x^2 = \Delta y^2$$
+Now, our discretized function is $u(p_{ijk})=u(x_i, y_j, t_k)$. We now rewrite the convolution $g *K$ as a summation using our discretization to get 
+\begin{align*}
+    g*K(q_{lmk}) \approx \sum_i \sum_j g(p_{ijk} -q_{lmk}), K(p_{ijk})  
+\end{align*}
+
+\subsection{Heat kernel Convolution}
+The heat kernel is a solution to the heat equation, in other words $$D_t K=\Delta K$$
+Let's say for example we are working with a two-dimentional function $u(x, t)$ with $g(x)$ as the initial data for a heat diffusion we want to model. We use $K(x, t) = \frac{1}{4\pi t} e^{\frac{-x^2}{4}}$ as the 2-dimensional heat kernel. We know that $D_t K(x, t)-D_xD_xK(x, t)=0$. Then we have $$u(x, t) = g*K=\int K(x-y, t)g(y) dy$$
+We want to make sure that this fulfills the heat equation, so we compute \begin{align*}
+    D_t(g*K)&=\int Dt\Big[K(x-y, t)g(y) \Big] \; \delta y\\
+    D_xD_x(g*K)&=\int D_xD_x\Big[K(x-y, t)g(y) \Big] \; \delta y\\
+    D_t(g*K)-D_xD_x(g*K)&=\int(D_tK-D_xD_xK)(x-y, t)g(y) \;\delta y
+\end{align*}
+We know because $K$ solves the heat equation that $(D_tK-D_xD_xK)(x-y, t) = 0$ and so $$D_t(g*K)-D_xD_x(g*K) = 0 \cdot g(y)\; \delta y = 0$$
+So $u(x,t) = g*K(x, t)$ solves the heat equation.
+\section{The Bence-Merriman-Osher Algorithm} 
+When implementing the Bence Merriman Osher Algorithm, we begin with an open set $\Omega_0 \in \mathbb{R}^2$, the shape to which we will apply the curve shortening algorithm. We begin with the heat equation initial value problem: 
+$$\begin{cases}                 
+    D_tu(x,y,t)=\Delta u(x,y,t) \\
+    u(s, y, 0), = \chi_{\Omega_0}(x, y)
+\end{cases}$$ 
+Where $\chi_{\Omega_0}(x, y)$ is the characteristic function 
+$$\chi_{\Omega_0}(x, y) \begin{cases}
+    1 \text{ if } (xy) \in \Omega_0\\
+    0 \text{ otherwise}
+\end{cases}$$
+Recalling the heat kernel convolution, we write $$u(x, y, t) = \chi_{\Omega_0} * K(x, y, t) = \int \int K(x-h, y-w, t)\chi(h, w)\; dh dw$$
+Notice that $\chi(h, w)$ will only be 1 if $(h, w) \in \Omega_0$ and will otherwise be 0, rendering our convolution 0 unless it is within the bounds of $\Omega_0$. So, we rewrite our convolution 
+\begin{align*}
+    \chi_{\Omega_0} * K(x, y, t) &= \int \int K(x-h, y-w, t)\chi(h, w)\; dh \;dw\\
+    &=\int\int_{\Omega_0} K(x-h, y-w, t) \; \delta h \; \delta w
+\end{align*}
+We discretize and label the points $p_{ijk} = (x_i, y_j, t_k)$ to get $$u(p_{ijk})=\sum_i\sum_j K(p_{ijk}-q_{lmk})$$
+
+Now we apply our algorithm over the characteristic function $\chi_{\Omega_0}$. We run our diffusion $u$ on $\chi_{\Omega_0}$ for a given $\Delta t$, and then cut the surface at a threshold $\sigma$. We project the new boundary to create a new open set $\Omega_1$, and repeat now with $\chi_{\Omega_1}$.
+
+For a machine learning algorithm, we can write this as a chain of matrix equations, where $A$ is the matrix of $u(p_{ijk})$, $x$ is the discretized matrix for $\chi_\Omega$ and $\sigma$ is the threshold, such that one iteration of the BMO Algorithm is written as $\sigma(Ax)$.
+     
+\subsection{The Heat Kernel Matrix}
+Because we use the heat kernel in a convolution when working with diffusion algorithms, it is helpful to have a discretized heat kernel matrix.
+We want to use the Heat Kernel Matrix in a convolution with an image of a function.  Every element $(i, j)$ on our matrix is expressed as 
+\begin{align*}
+    K_{i, j} &:= K(\Delta i, \Delta j, \Delta^2)\\
+    &:=\frac{1}{4\pi\Delta^2}e^{-\frac{i^2+j^2}{4}}
+\end{align*}
+  for a chosen size of $\Delta$. 
+  
+  Note delta represents the time step size, so it should be too big. We also must select a size of the matrix such that $i, j$ do not become too big, as then the outer values of the matrix as $i, j$ increase will become negligible. 
+  \begin{figure}[ht]
+\centering
+\caption{}
+\includegraphics[width=16cm]{KernelCode.png}
+\end{figure}
+  In our construction of a discretized image, we will choose a standardized size $s$ for the original image, for example $s=1$ or $s=2$. We then calculate $\delta$, in terms of $n$ (our chosen final image matrix size) and $s$, using the following formula: 
+  $$\Delta = \frac{s}{n}$$
+  For example, if we want a discretized image in a $64 \times 64$ matrix and our original image is of size $s=1$, then $\Delta= \frac{1}{64}$. 
+  The code for the heat kernel with a given $\Delta$ is written in fig. 7.
+  We begin by creating a matrix with the chosen kernel matrix size, and then delegating the kernel values using two loops based on the heat kernel equation with $i, j$. 
+
+
+\section{Neural Network Theory}
+\definition An artificial neural network is a set of composed functions, where each layer takes the form $\sigma(Ax+ b)$ where $A$ is a linear function, $b$ is a set fixed value, and $\sigma$ is a nonlinear sigmoid function, called the "activation function." 
+\begin{theorem}  Cybencko's Theory of Universal Approximation: given a function $f \in C(I_n)$  and an $\epsilon >0$, there exists a function $G(x)$ of the form \begin{align*}
+    G(x) = \sum_{j=1}^N \alpha_j \sigma (Ax + b) && A \in \R^n, \alpha, b \in \R
+\end{align*}
+for all $x \in I_n$ such that $$|G(x)-f(x)|<\epsilon, \; \forall x \in I_n$$
+
+\end{theorem}
+In other words, given any margin of error $\epsilon >0$, we can create a set of composed functions $G(x)$ using fixed values and a sigmoid function to approximate any function $f$. This is helpful to model super complex functions as simpler compositions.  
+
+When working with neural networks, we often use two sets of data: training data and actual data. We use the training data to train the neural network to predict a set of outcomes $y_t$ based on a set of inputs $x_t$.  The network then runs on a cost function $Cost(p)$ where $p\in \R^s$ is the vector with the parameters of the equation. The cost function compares the computed values of the non-training data by the network $N_{\theta}(x_i)$ and the training $y_i$ output in the form 
+$$Cost = \sum_i (N_{\theta}(x_i) - y_i)^2$$
+The neural network then minimizes the cost function by using gradient descent to optimize the loss function. 
+\subsection{Inverse Problem}
+In the context of the Merriman Bence Osher algorithm, a layer in the network is $\sigma(Ax)$ where $A=$ discretized  heat kernal matrix, $\sigma=$ threshold, and $x$ is the original image matrix (initial data).  Three 'rounds' of this network would be mathematically computed as $$MBO(3, x_1)=\sigma(A(\sigma(A(\sigma(Ax_1)))))$$
+Where $x_1$ is our initial data. 
+
+
+Instead of simply running the MBO algorithm on an image, we wish to take a series of pictures from an MBO algorithm, the series of matrices $(x_1^k, x_2^k \ldots x_{10}^k)$ and derive the original perameters of kernal and threshold from them. Our training data is $l$ different movies, each with $10$ pictures. To do that, we use a neural network that is based on a loss function in the following form: 
+$$LOSS = \sum_{k=1}^l\sum_{n=1}^{10} [MBO(n, x_1^k) - x_{n}^k]^2$$
+
+The neural network uses the MBO function values as training data to estimate the parameters used in the given series of images. The neural network tries to minimize the loss function by making $MBO(n, x_1) = x_n$ , as then $LOSS(x_1)=0$.
+
+\section{The Coding}
+\subsection{Creating the Images}
+\subsubsection{Code}
+The following is the full code for the convolution network, that takes a given black and white image and returns a heat diffusion algorithm for a given number of iterations. 
+
+\begin{minted}{python}
+import cv2 as cv
+import numpy as np
+from scipy.interpolate import RegularGridInterpolator
+from scipy import ndimage
+import imageio
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import matplotlib.animation as animationt
+mpl.rc('image', cmap='gray')
+import math
+
+def imshow(img):
+    plt.imshow(img)
+    plt.colorbar()
+    # plt.axis('off')
+    plt.show()
+
+def time_step(n):
+    # image size
+    size = 512
+    delta = size / n
+    return delta
+
+def heat_kernel(kernel_size, delta):
+    """Create a kernel using heat equation with input size and deviation"""
+    # Create kernel maxtrix with input size
+    kernel = np.zeros((kernel_size, kernel_size))
+    center = kernel_size // 2
+    for i in range(kernel_size):
+        for j in range(kernel_size):
+            x = i - center
+            y = j - center
+            kernel[i, j] = np.exp(-(x**2 + y**2)/4)/(4*np.pi*delta**2)
+    kernel /= np.sum(kernel)
+    print(kernel)
+    return kernel
+
+def heat_kernel_convolution(image, kernel):
+    """Compute heat kernel convolution on input image"""
+    # Apply kernel convolution to image
+    heat_convoluted = ndimage.convolve(image, kernel, mode='reflect')
+    heat_convoluted = heat_convoluted.astype(float)
+
+    # Set values above 0.5 to 1 and below to 0
+    heat_convoluted[heat_convoluted > 0.5] = 1
+    heat_convoluted[heat_convoluted <= 0.5] = 0
+
+    return heat_convoluted
+
+def heat_diffusion(image, kernel, lapse):
+  """Apply heat diffusion on image over a period"""
+  images = [image]
+  # imshow(image)
+  for i in range(lapse):
+    conv_img =  heat_kernel_convolution(images[i], kernel)
+    #append the new convoluted image 
+    images.append(conv_img)
+  for img in images:
+    img *= 255
+  imageio.mimsave('circle.gif', images, duration = 50)
+  return images
+\end{minted}{python}
+\subsubsection{Explanation}
+The code takes an input black and white image, with the cold to run a curve shortening algorithm on that shape. The black pixels are modeled as $1$ and the white is $0$. Using the code of Elisa Negrini as an outline \cite{elisia}, 
+we begin by setting $\Delta$ based on the size of the image we are working with, $n$. We then create a heat kernel matrix, using the discretized equation we defined previously in section 4.2, centered at the middle of the kernel. We use the set $\Delta$ as well as a given kernel size. We finally naturalize the kernel for convolution. 
+
+We then define the convolution the heat kernel with the image matrix in the method heat\_kernel\_convolution, which convolves the kernel and the image matrix and then runs the final matrix through the threshold, in this example 0.3. 
+
+We finally define the diffusion algorithm itself as heat\_diffusion, which when given an image, kernel and lapse period (or the number of iterations of the MBO algorithm), runs the convolution a certain number of times and compiles each iterated image into a segmented video of the diffusion. 
+
+\subsection{Inverse Problem Code}
+
+\section{Summary}
+In this research project, we studied partial differential equations and their applications to modeling diffusion. We used PDE's such as the heat kernel to create a machine learning algorithm that modeled the diffusion over a surface over time. 
+
+\printbibliography
+\end{document}

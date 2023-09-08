@@ -1,2 +1,0 @@
-The project is both in deep learning and mathematics. The goal is to develop the theory behind a new algorithm of deep learning, using aneural network to understand the dynamics of a diffusion data (e.g. spread of epidemmics, heat diffusion in media, how infromation travels through social networks, etc...). The students will study with professor Luca Capogna the necessary math background.
-Crandall Ligget Theorem is going to be used to develop the algorithm. The plan is to then focys on impleneting the theory through Python, running synthetic data testings. 
